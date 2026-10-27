@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Bihar Sampark Kranti Express - 32-Bit Edition</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@600;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            background-color: #090d16;
+            font-family: 'Rajdhani', sans-serif;
+            color: #f8fafc;
+        }
+
+        .font-pixel {
+            font-family: 'Press Start 2P', monospace;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        .pixel-panel {
+            background: rgba(15, 23, 42, 0.92);
+            border: 2px solid #334155;
+            box-shadow: 0 4px 0 0 #0f172a, inset 0 0 0 2px rgba(255,255,255,0.05);
+        }
+
+        .pixel-btn {
+            background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+            border: 2px solid #475569;
+            box-shadow: 0 2px 0 0 #0f172a;
+            cursor: pointer;
+            transition: all 0.05s ease;
+        }
+
+        .pixel-btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 0 0 #0f172a;
+        }
+
+        .pixel-btn-red {
+            background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
+            border-color: #fca5a5;
+            color: #ffffff;
+        }
+
+        .pixel-btn-amber {
+            background: linear-gradient(180deg, #f59e0b 0%, #b45309 100%);
+            border-color: #fde68a;
+            color: #0f172a;
+        }
+
+        .pixel-btn-green {
+            background: linear-gradient(180deg, #10b981 0%, #047857 100%);
+            border-color: #a7f3d0;
+            color: #ffffff;
+        }
+
+        .pixel-btn-cyan {
+            background: linear-gradient(180deg, #06b6d4 0%, #0e7490 100%);
+            border-color: #a5f3fc;
+            color: #ffffff;
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #090d16;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen max-h-[100dvh] overflow-hidden flex flex-col justify-between items-stretch select-none bg-slate-950">
+
+    <!-- CANVAS VIEWPORT -->
+    <div id="viewportContainer" class="relative w-full flex-1 overflow-hidden bg-slate-950 flex justify-center items-center">
+        <canvas id="gameCanvas" class="w-full h-full"></canvas>
+
+        <!-- TOP HUD OVERLAY -->
+        <div id="topHud" class="absolute top-1.5 left-2 right-2 p-1 pointer-events-none flex justify-between items-start z-10 hidden">
+            <!-- Left Info Panel (Compact Time & Sched) -->
+            <div class="pixel-panel px-2 py-1 rounded-md flex items-center gap-2 text-[10px] pointer-events-auto border-amber-500/40">
+                <div class="flex items-center gap-1 text-amber-400 font-pixel text-[8px]">
+                    <i class="fa-solid fa-train-subway"></i>
+                    <span id="hudTrainNo">12565 UP</span>
+                </div>
+                <div class="h-3 w-[1px] bg-slate-700"></div>
+                <div class="flex flex-col text-[9px]">
+                    <div class="flex items-center gap-1 font-mono">
+                        <span id="hudClock" class="text-amber-300 font-bold">08:25 AM</span>
+                        <span id="hudScheduleDelta" class="text-[8px] font-bold px-1 rounded bg-emerald-950 text-emerald-400 border border-emerald-700">ON TIME</span>
+                    </div>
+                </div>
+                <div class="h-3 w-[1px] bg-slate-700"></div>
+                <div class="text-slate-300 font-mono text-[10px]">
+                    <span><strong id="hudDist" class="text-cyan-400">0.0</strong> km</span>
+                </div>
+            </div>
+
+            <!-- Center Target Station Status (PROMINENT / LARGER) -->
+            <div class="pixel-panel px-4 py-2 rounded-lg flex flex-col items-center pointer-events-auto text-center min-w-[200px] sm:min-w-[320px] border-amber-500/60 shadow-lg">
+                <div class="flex items-center gap-2 text-sm sm:text-base font-bold">
+                    <span id="signalLight" class="w-3.5 h-3.5 rounded-full bg-emerald-500 border border-emerald-200"></span>
+                    <span id="nextStationText" class="text-amber-300 font-pixel text-[10px] sm:text-[13px] tracking-wide">NEXT: SPJ (37.0 km)</span>
+                </div>
+                <div class="w-full bg-slate-950 h-2.5 rounded border border-slate-700 mt-1 overflow-hidden">
+                    <div id="stationProgress" class="bg-gradient-to-r from-amber-500 to-emerald-400 h-full w-0 transition-all duration-150"></div>
+                </div>
+                <div id="stationStatusText" class="text-[10px] text-slate-300 font-bold mt-0.5">Maintain 110 km/h speed limit</div>
+            </div>
+
+            <!-- Right System Buttons -->
+            <div class="flex items-center gap-1 pointer-events-auto">
+                <button id="btnAudioToggle" class="pixel-btn text-amber-400 w-7 h-7 sm:w-8 sm:h-8 rounded flex items-center justify-center text-[10px] shadow">
+                    <i id="audioIcon" class="fa-solid fa-volume-high"></i>
+                </button>
+                <button id="btnPause" class="pixel-btn text-white w-7 h-7 sm:w-8 sm:h-8 rounded flex items-center justify-center text-[10px] shadow">
+                    <i class="fa-solid fa-pause"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM DASHBOARD PANEL -->
+    <div id="bottomDashboard" class="w-full bg-slate-950 border-t border-slate-800 p-1 sm:p-1.5 z-20 shrink-0 hidden">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-1.5 flex-wrap sm:flex-nowrap">
+            
+            <!-- Gauges & Telemetry -->
+            <div class="pixel-panel p-1 sm:p-1.5 rounded-md flex items-center gap-2 shrink-0">
+                <div class="flex flex-col items-center px-1">
+                    <span class="text-[8px] font-pixel text-slate-400 uppercase">SPEED</span>
+                    <div class="text-base sm:text-xl font-black font-mono text-emerald-400 flex items-baseline leading-none my-0.5">
+                        <span id="dashSpeed">0</span>
+                        <span class="text-[8px] text-slate-400 ml-0.5">km/h</span>
+                    </div>
+                </div>
+
+                <div class="h-6 w-[1px] bg-slate-800"></div>
+
+                <div class="flex flex-col items-center min-w-[65px] sm:min-w-[80px]">
+                    <span id="locoPowerLabel" class="text-[8px] font-pixel text-slate-400">WAP-7 AMPS</span>
+                    <div class="w-full bg-slate-950 h-2 border border-slate-700 rounded overflow-hidden mt-0.5">
+                        <div id="rpmBar" class="bg-gradient-to-r from-cyan-500 to-amber-500 h-full w-0 transition-all duration-100"></div>
+                    </div>
+                    <span id="rpmText" class="text-[9px] font-mono text-cyan-300 font-bold mt-0.5">0 AMPS</span>
+                </div>
+            </div>
+
+            <!-- Action Control Buttons -->
+            <div class="flex items-center gap-1 sm:gap-1.5">
+                <button id="btnDoorToggle" class="pixel-btn-green px-2 py-1.5 sm:px-2.5 sm:py-2 rounded font-pixel text-[8px] sm:text-[9px] flex items-center gap-1 shadow">
+                    <i class="fa-solid fa-door-closed"></i>
+                    <span id="doorBtnText">DOORS: CLOSED</span>
+                </button>
+
+                <button id="btnSanding" class="pixel-btn-cyan px-2 py-1.5 sm:px-2.5 sm:py-2 rounded font-pixel text-[8px] sm:text-[9px] flex items-center gap-1 shadow" title="Wheel Sanding Traction">
+                    <i class="fa-solid fa-boxes-packing"></i>
+                    <span>SAND</span>
+                </button>
+
+                <button id="btnHorn" class="pixel-btn-amber px-2 py-1.5 sm:px-3 sm:py-2 rounded font-pixel text-[8px] sm:text-[9px] flex items-center gap-1 shadow">
+                    <i class="fa-solid fa-bullhorn"></i>
+                    <span>HORN</span>
+                </button>
+            </div>
+
+            <!-- Driving Controls: Throttle, Brake, Reverser -->
+            <div class="pixel-panel p-1 sm:p-1.5 rounded-md flex items-center gap-2 shrink-0">
+                <div class="flex flex-col items-center gap-0.5">
+                    <div class="flex justify-between w-full text-[8px] font-pixel text-slate-300">
+                        <span>NOTCH</span>
+                        <span id="notchDisplay" class="text-amber-400 font-mono font-bold">N0</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button id="btnNotchDown" class="pixel-btn text-amber-400 w-6 h-6 sm:w-7 sm:h-7 rounded font-bold text-xs">-</button>
+                        <div id="notchVal" class="bg-slate-950 px-1.5 py-0.5 border border-slate-700 rounded text-amber-300 font-mono font-black text-xs min-w-[28px] text-center">
+                            N0
+                        </div>
+                        <button id="btnNotchUp" class="pixel-btn text-amber-400 w-6 h-6 sm:w-7 sm:h-7 rounded font-bold text-xs">+</button>
+                    </div>
+                </div>
+
+                <div class="h-6 w-[1px] bg-slate-800"></div>
+
+                <div class="flex flex-col items-center gap-0.5">
+                    <div class="flex justify-between w-full text-[8px] font-pixel text-slate-300">
+                        <span>BRAKE</span>
+                        <span id="brakeDisplay" class="text-rose-400 font-mono font-bold">0%</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button id="btnBrakeDown" class="pixel-btn text-rose-400 w-6 h-6 sm:w-7 sm:h-7 rounded font-bold text-xs">-</button>
+                        <input type="range" id="brakeRange" min="0" max="100" value="0" class="w-10 sm:w-14 accent-rose-500 cursor-pointer">
+                        <button id="btnBrakeUp" class="pixel-btn text-rose-400 w-6 h-6 sm:w-7 sm:h-7 rounded font-bold text-xs">+</button>
+                    </div>
+                </div>
+
+                <div class="h-6 w-[1px] bg-slate-800 hidden xs:block"></div>
+
+                <div class="flex flex-col items-center gap-0.5 hidden xs:flex">
+                    <span class="text-[8px] font-pixel text-slate-400">GEAR</span>
+                    <button id="btnReverser" class="pixel-btn text-emerald-400 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold">
+                        FWD
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN MENU OVERLAY -->
+    <div id="mainMenu" class="absolute inset-0 flex flex-col items-center justify-center z-30 p-4 bg-slate-950/95">
+        <div class="max-w-md w-full pixel-panel p-5 sm:p-6 rounded-xl text-center flex flex-col items-center border-amber-500/50 shadow-2xl">
+            <div class="w-12 h-12 bg-gradient-to-tr from-amber-500 to-amber-300 text-slate-950 rounded-lg flex items-center justify-center text-xl font-black mb-2.5 shadow-[0_0_20px_rgba(245,158,11,0.4)]">
+                <i class="fa-solid fa-train"></i>
+            </div>
+            <h1 class="text-base sm:text-lg font-pixel text-amber-400 tracking-wider mb-1 leading-tight">
+                BIHAR SAMPARK KRANTI
+            </h1>
+            <p class="text-xs text-slate-300 font-bold mb-4">32-Bit Express Simulator (DBG ↔ NDLS)</p>
+
+            <div class="w-full text-left space-y-3 mb-5">
+                <div>
+                    <label class="block text-[9px] font-pixel text-slate-300 uppercase mb-1">SELECT ROUTE DIRECTION</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="btnRouteUp" class="pixel-btn-amber p-2 text-[10px] font-pixel rounded text-center">
+                            12565 UP<br><span class="text-[9px] font-sans font-bold">DBG ➔ NDLS (08:25 AM)</span>
+                        </button>
+                        <button id="btnRouteDown" class="pixel-btn p-2 text-[10px] font-pixel text-slate-300 rounded text-center">
+                            12566 DOWN<br><span class="text-[9px] font-sans font-bold">NDLS ➔ DBG (01:00 PM)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[9px] font-pixel text-slate-300 uppercase mb-1">LOCOMOTIVE LIVERY</label>
+                    <select id="locoSelect" class="w-full bg-slate-900 border-2 border-slate-700 rounded px-3 py-1.5 text-xs text-amber-300 font-mono focus:outline-none">
+                        <option value="WAP7">WAP-7 Electric (Electric Blue / White)</option>
+                        <option value="WDP4D">WDP-4D Diesel (Indian Railways Red & Yellow)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[9px] font-pixel text-slate-300 uppercase mb-1">CUSTOM SEED (OPTIONAL)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="seedInput" placeholder="Leave blank for official route" class="flex-1 bg-slate-900 border-2 border-slate-700 rounded px-3 py-1.5 text-xs text-amber-300 font-mono focus:outline-none">
+                        <button id="btnRandomSeed" class="pixel-btn p-2 text-slate-300 text-xs rounded">
+                            <i class="fa-solid fa-dice text-amber-400"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col w-full gap-2.5">
+                <button id="btnStartGame" class="pixel-btn-green py-3 text-xs font-pixel rounded flex items-center justify-center gap-2 shadow-lg">
+                    <i class="fa-solid fa-play"></i> DEPART TRAIN
+                </button>
+                <button id="btnOpenBookmarks" class="pixel-btn py-2 text-xs font-pixel text-slate-200 rounded flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-bookmark text-amber-400"></i> SAVED ROUTE SEEDS
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAUSE MENU OVERLAY -->
+    <div id="pauseMenu" class="absolute inset-0 flex flex-col items-center justify-center z-30 p-4 bg-slate-950/85 backdrop-blur-sm hidden">
+        <div class="max-w-xs w-full pixel-panel p-5 rounded-xl text-center flex flex-col items-center border-amber-500/40">
+            <h2 class="text-xs font-pixel text-amber-400 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-pause"></i> SIMULATION PAUSED
+            </h2>
+            <div class="flex flex-col w-full gap-2.5">
+                <button id="btnResume" class="pixel-btn-amber py-2 text-xs font-pixel rounded">RESUME JOURNEY</button>
+                <button id="btnSaveBookmark" class="pixel-btn py-2 text-xs font-pixel text-emerald-400 rounded flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-bookmark"></i> SAVE ROUTE SEED
+                </button>
+                <button id="btnQuit" class="pixel-btn py-2 text-xs font-pixel text-rose-400 rounded flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-right-from-bracket"></i> QUIT TO MENU
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOOKMARKS MODAL -->
+    <div id="bookmarksModal" class="absolute inset-0 flex flex-col items-center justify-center z-30 p-4 bg-slate-950/90 backdrop-blur-sm hidden">
+        <div class="max-w-md w-full pixel-panel p-4 rounded-xl text-left flex flex-col max-h-[80vh]">
+            <div class="flex justify-between items-center mb-3 pb-2 border-b-2 border-slate-700">
+                <h3 class="text-xs font-pixel text-amber-400 flex items-center gap-2">
+                    <i class="fa-solid fa-bookmark"></i> SAVED ROUTE SEEDS
+                </h3>
+                <button id="btnCloseBookmarks" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div id="bookmarksList" class="w-full overflow-y-auto space-y-2 my-2 flex-1 min-h-[160px]"></div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="absolute top-10 left-1/2 transform -translate-x-1/2 pointer-events-none transition-all duration-300 opacity-0 translate-y-[-10px] z-40">
+        <div class="pixel-panel px-3.5 py-1.5 rounded-lg flex items-center gap-2 shadow-2xl border-amber-500/60 bg-slate-900">
+            <i id="toastIcon" class="fa-solid fa-info-circle text-amber-400 text-xs"></i>
+            <span id="toastMsg" class="font-bold text-xs text-slate-100 font-mono">Notification</span>
+        </div>
+    </div>
+
+    <!-- GAME ENGINE LOGIC -->
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const viewportContainer = document.getElementById('viewportContainer');
+
+        let viewWidth = 960;
+        let viewHeight = 480;
+
+        function resizeCanvas() {
+            viewWidth = viewportContainer.clientWidth;
+            viewHeight = viewportContainer.clientHeight;
+            canvas.width = viewWidth;
+            canvas.height = viewHeight;
+            ctx.imageSmoothingEnabled = false;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function mulberry32(a) {
+            return function() {
+                let t = a += 0x6D2B79F5;
+                t = Math.imul(t ^ t >>> 15, t | 1);
+                t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            }
+        }
+
+        const ROUTE_UP = [
+            { code: 'DBG', name: 'Darbhanga Jn', distKm: 0, platformLen: 460, schedHrs: 0.0 },
+            { code: 'SPJ', name: 'Samastipur Jn', distKm: 37, platformLen: 460, schedHrs: 0.8 },
+            { code: 'MFP', name: 'Muzaffarpur Jn', distKm: 89, platformLen: 460, schedHrs: 1.7 },
+            { code: 'HJP', name: 'Hajipur Jn', distKm: 143, platformLen: 460, schedHrs: 2.6 },
+            { code: 'CPR', name: 'Chhapra Jn', distKm: 203, platformLen: 460, schedHrs: 4.1 },
+            { code: 'SV',  name: 'Siwan Jn', distKm: 264, platformLen: 460, schedHrs: 5.1 },
+            { code: 'DEOS',name: 'Deoria Sadar', distKm: 334, platformLen: 460, schedHrs: 6.3 },
+            { code: 'GKP', name: 'Gorakhpur Jn', distKm: 383, platformLen: 460, schedHrs: 7.4 },
+            { code: 'ASH', name: 'Aishbagh (Lucknow)', distKm: 653, platformLen: 460, schedHrs: 12.0 },
+            { code: 'CNB', name: 'Kanpur Central', distKm: 725, platformLen: 460, schedHrs: 13.5 },
+            { code: 'NDLS',name: 'New Delhi', distKm: 1165, platformLen: 500, schedHrs: 21.1 }
+        ];
+
+        const TOTAL_ROUTE_KM = 1165;
+        const ROUTE_DOWN = [...ROUTE_UP].reverse().map((st) => {
+            return {
+                code: st.code,
+                name: st.name,
+                distKm: parseFloat((TOTAL_ROUTE_KM - st.distKm).toFixed(1)),
+                platformLen: st.platformLen,
+                schedHrs: parseFloat((21.1 - st.schedHrs).toFixed(1))
+            };
+        });
+
+        let gameState = 'MENU';
+        let routeDirection = 'UP';
+        let currentRoute = ROUTE_UP;
+        let selectedLoco = 'WAP7';
+        let seed = 12565;
+        let rng = mulberry32(seed);
+
+        // INDEPENDENT TICKING CLOCK SYSTEM (~60x simulation scale: 1 real second = 1 in-game minute)
+        let startDepartureHour = 8.416; // 08:25 AM
+        let elapsedSimHours = 0;       
+        let stars = [];
+
+        for (let i = 0; i < 70; i++) {
+            stars.push({
+                x: Math.random(),
+                y: Math.random() * 0.45,
+                size: Math.random() < 0.8 ? 1 : 2,
+                twinkle: Math.random() * Math.PI * 2
+            });
+        }
+
+        const train = {
+            x: 250,
+            speed: 0,
+            targetSpeed: 0,
+            notch: 0,
+            rpm: 0,
+            brake: 0,
+            reverser: 1,
+            doorsOpen: false,
+            sandingActive: false,
+            passengersBoarded: [],
+            exhaustParticles: [],
+            sparkParticles: [],
+            wheelAngle: 0
+        };
+
+        let activeStations = [];
+        let commuters = [];
+        let trackProps = [];
+        let score = 0;
+
+        let audioCtx = null;
+        let engineOsc = null;
+        let engineGain = null;
+        let audioMuted = false;
+
+        function initAudio() {
+            if (audioCtx) return;
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+
+            engineOsc = audioCtx.createOscillator();
+            engineGain = audioCtx.createGain();
+
+            engineOsc.type = selectedLoco === 'WAP7' ? 'sine' : 'sawtooth';
+            engineOsc.frequency.setValueAtTime(selectedLoco === 'WAP7' ? 120 : 35, audioCtx.currentTime);
+            engineGain.gain.setValueAtTime(0.015, audioCtx.currentTime);
+
+            engineOsc.connect(engineGain);
+            engineGain.connect(audioCtx.destination);
+            engineOsc.start();
+        }
+
+        function updateAudioPitch() {
+            if (!audioCtx || audioMuted) return;
+            if (selectedLoco === 'WAP7') {
+                const freq = 120 + (Math.abs(train.speed) * 4.5);
+                engineOsc.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.1);
+            } else {
+                const freq = 35 + (train.notch * 12);
+                engineOsc.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.2);
+            }
+        }
+
+        function playIndianRailwayHorn() {
+            if (audioMuted) return;
+            initAudio();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const osc1 = audioCtx.createOscillator();
+            const osc2 = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc1.type = 'sawtooth';
+            osc2.type = 'sawtooth';
+
+            osc1.frequency.setValueAtTime(370, audioCtx.currentTime);
+            osc2.frequency.setValueAtTime(466, audioCtx.currentTime);
+
+            gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.4);
+
+            osc1.connect(gain);
+            osc2.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc1.start();
+            osc2.start();
+            osc1.stop(audioCtx.currentTime + 1.4);
+            osc2.stop(audioCtx.currentTime + 1.4);
+        }
+
+        function getTerrainY(worldX) {
+            const base = viewHeight * 0.70;
+            const wave = Math.sin(worldX * 0.0004) * 20 + Math.cos(worldX * 0.0009) * 8;
+            return Math.round(base + wave);
+        }
+
+        function setupActiveRoute() {
+            activeStations = [];
+            commuters = [];
+            trackProps = [];
+
+            currentRoute = routeDirection === 'UP' ? ROUTE_UP : ROUTE_DOWN;
+            startDepartureHour = routeDirection === 'UP' ? 8.416 : 13.0; // 08:25 AM vs 01:00 PM
+            elapsedSimHours = 0;
+
+            const SCALE_PX_PER_KM = 1200;
+
+            currentRoute.forEach((st, idx) => {
+                const worldX = 1200 + (st.distKm * SCALE_PX_PER_KM);
+                const stationObj = {
+                    id: idx + 1,
+                    code: st.code,
+                    name: st.name,
+                    distKm: st.distKm,
+                    schedHrs: st.schedHrs,
+                    x: worldX,
+                    length: st.platformLen,
+                    waitingCount: Math.floor(rng() * 6) + 4
+                };
+                activeStations.push(stationObj);
+
+                for (let c = 0; c < stationObj.waitingCount; c++) {
+                    commuters.push({
+                        stationId: stationObj.id,
+                        x: worldX + 70 + c * 24,
+                        state: 'WAITING',
+                        walkOffset: 0,
+                        color: ['#ef4444', '#38bdf8', '#fbbf24', '#c084fc', '#34d399'][c % 5]
+                    });
+                }
+            });
+
+            const totalWorldWidth = 1200 + (TOTAL_ROUTE_KM * SCALE_PX_PER_KM) + 3000;
+            for (let px = 0; px < totalWorldWidth; px += 240) {
+                trackProps.push({
+                    x: px,
+                    type: (px % 960 === 0) ? 'SIGNAL' : 'POLE'
+                });
+            }
+        }
+
+        let toastTimer = null;
+        function showToast(msg, icon = 'fa-info-circle') {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            document.getElementById('toastIcon').className = `fa-solid ${icon} text-amber-400 text-xs`;
+            toast.classList.remove('opacity-0', 'translate-y-[-10px]');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'translate-y-[-10px]');
+            }, 2400);
+        }
+
+        function getBookmarks() {
+            const raw = localStorage.getItem('bihar_sampark_bookmarks');
+            return raw ? JSON.parse(raw) : [];
+        }
+
+        function saveBookmark() {
+            const list = getBookmarks();
+            const item = { seed, route: routeDirection, loco: selectedLoco };
+            list.push(item);
+            localStorage.setItem('bihar_sampark_bookmarks', JSON.stringify(list));
+            showToast(`Saved Route Seed #${seed}`, 'fa-bookmark');
+        }
+
+        function renderBookmarksUI() {
+            const container = document.getElementById('bookmarksList');
+            const list = getBookmarks();
+            container.innerHTML = '';
+
+            if (list.length === 0) {
+                container.innerHTML = `<div class="text-center py-6 text-slate-500 font-pixel text-[10px]">No saved seeds yet!</div>`;
+                return;
+            }
+
+            list.forEach((b, idx) => {
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between p-2.5 bg-slate-900 border-2 border-slate-700 rounded";
+                div.innerHTML = `
+                    <div class="font-mono text-xs text-amber-300 font-bold">
+                        <span>Seed #${b.seed}</span> (${b.route} - ${b.loco})
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="loadBookmarkSeed(${b.seed}, '${b.route}', '${b.loco}')" class="pixel-btn-amber px-2 py-1 text-[9px] font-pixel rounded">LOAD</button>
+                        <button onclick="deleteBookmarkSeed(${idx})" class="text-slate-400 hover:text-rose-400 text-xs p-1"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        window.loadBookmarkSeed = function(s, r, l) {
+            routeDirection = r;
+            selectedLoco = l;
+            document.getElementById('bookmarksModal').classList.add('hidden');
+            document.getElementById('mainMenu').classList.add('hidden');
+            startNewGame(s);
+        };
+
+        window.deleteBookmarkSeed = function(idx) {
+            let list = getBookmarks();
+            list.splice(idx, 1);
+            localStorage.setItem('bihar_sampark_bookmarks', JSON.stringify(list));
+            renderBookmarksUI();
+        };
+
+        function startNewGame(customSeed = null) {
+            if (customSeed !== null) {
+                seed = parseInt(customSeed);
+            } else {
+                const val = document.getElementById('seedInput').value.trim();
+                seed = val ? parseInt(val) || Math.floor(Math.random() * 89999 + 10000) : Math.floor(Math.random() * 89999 + 10000);
+            }
+
+            rng = mulberry32(seed);
+            selectedLoco = document.getElementById('locoSelect').value;
+
+            train.x = 300;
+            train.speed = 0;
+            train.notch = 0;
+            train.rpm = 0;
+            train.brake = 0;
+            train.reverser = 1;
+            train.doorsOpen = false;
+            train.sandingActive = false;
+            train.passengersBoarded = [];
+            train.exhaustParticles = [];
+            train.sparkParticles = [];
+
+            score = 0;
+
+            setupActiveRoute();
+
+            document.getElementById('hudTrainNo').innerText = routeDirection === 'UP' ? '12565 UP' : '12566 DOWN';
+            document.getElementById('locoPowerLabel').innerText = selectedLoco === 'WAP7' ? 'WAP-7 AMPS' : 'WDP-4D RPM';
+            document.getElementById('notchVal').innerText = 'N0';
+            document.getElementById('notchDisplay').innerText = 'N0';
+            document.getElementById('brakeRange').value = 0;
+            document.getElementById('brakeDisplay').innerText = '0%';
+            updateDoorBtnUI();
+
+            document.getElementById('mainMenu').classList.add('hidden');
+            document.getElementById('pauseMenu').classList.add('hidden');
+            document.getElementById('topHud').classList.remove('hidden');
+            document.getElementById('bottomDashboard').classList.remove('hidden');
+
+            gameState = 'PLAYING';
+            initAudio();
+            showToast(`Bihar Sampark Kranti ${routeDirection} Ready for Departure!`, 'fa-train');
+        }
+
+        function updatePhysics() {
+            if (gameState !== 'PLAYING') return;
+
+            const notchLimits = [0, 15, 30, 45, 60, 75, 90, 100, 110];
+            train.targetSpeed = notchLimits[train.notch] * train.reverser;
+
+            if (train.doorsOpen) train.targetSpeed = 0;
+
+            const grip = train.sandingActive ? 1.4 : 1.0;
+
+            if (train.brake > 0) {
+                const decel = train.brake * 0.16 * grip;
+                if (train.speed > 0) train.speed = Math.max(0, train.speed - decel);
+                else if (train.speed < 0) train.speed = Math.min(0, train.speed + decel);
+
+                if (Math.abs(train.speed) > 15 && Math.random() < 0.3) {
+                    const ty = getTerrainY(train.x);
+                    train.sparkParticles.push({
+                        x: train.x + (Math.random() - 0.5) * 70,
+                        y: ty - 4,
+                        vx: (Math.random() - 0.5) * 2.5,
+                        vy: -Math.random() * 2,
+                        life: 1.0
+                    });
+                }
+            } else {
+                if (train.speed < train.targetSpeed) {
+                    train.speed = Math.min(train.targetSpeed, train.speed + 0.04 * (train.notch + 1));
+                } else if (train.speed > train.targetSpeed) {
+                    train.speed = Math.max(train.targetSpeed, train.speed - 0.02);
+                }
+            }
+
+            const pxSpeed = (train.speed / 3.6) * 1.85;
+            train.x += pxSpeed;
+            if (train.x < 150) train.x = 150;
+
+            train.wheelAngle += pxSpeed * 0.25;
+
+            // INDEPENDENT TICKING CLOCK ACCUMULATOR (Uncoupled from train speed/distance)
+            elapsedSimHours += (1 / 3600) * 1.5; // Smooth constant simulation tick
+
+            if (selectedLoco === 'WDP4D' && train.notch > 0) {
+                const ty = getTerrainY(train.x);
+                train.exhaustParticles.push({
+                    x: train.x + 30,
+                    y: ty - 44,
+                    vx: -pxSpeed * 0.3 + (Math.random() - 0.5),
+                    vy: -1.2 - Math.random() * (train.notch * 0.2),
+                    size: 3 + Math.random() * 4,
+                    alpha: 0.7
+                });
+            }
+
+            for (let i = train.exhaustParticles.length - 1; i >= 0; i--) {
+                const p = train.exhaustParticles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.size += 0.2;
+                p.alpha -= 0.02;
+                if (p.alpha <= 0) train.exhaustParticles.splice(i, 1);
+            }
+
+            for (let i = train.sparkParticles.length - 1; i >= 0; i--) {
+                const s = train.sparkParticles[i];
+                s.x += s.vx;
+                s.y += s.vy;
+                s.life -= 0.08;
+                if (s.life <= 0) train.sparkParticles.splice(i, 1);
+            }
+
+            const currentStation = activeStations.find(s => train.x >= s.x - 60 && train.x <= s.x + s.length + 60);
+            const nextStation = activeStations.find(s => s.x > train.x);
+            const statusElem = document.getElementById('stationStatusText');
+
+            if (currentStation) {
+                const isStopped = Math.abs(train.speed) < 0.2;
+
+                if (isStopped) {
+                    if (train.doorsOpen) {
+                        statusElem.innerHTML = `<span class="text-emerald-400 font-pixel text-[9px]">BOARDING PASSENGERS...</span>`;
+
+                        const waiting = commuters.find(c => c.stationId === currentStation.id && c.state === 'WAITING');
+                        if (waiting) {
+                            waiting.walkOffset += 1.5;
+                            if (waiting.walkOffset > 15) {
+                                waiting.state = 'BOARDED';
+                                train.passengersBoarded.push({ id: Date.now() });
+                                score += 40;
+                                showToast(`Passenger Boarded (+40 pts)`, 'fa-user-plus');
+                            }
+                        }
+
+                        if (train.passengersBoarded.length > 0 && Math.random() < 0.04) {
+                            train.passengersBoarded.pop();
+                            score += 60;
+                            showToast(`Passenger Deboarded (+60 pts)`, 'fa-user-check');
+                        }
+                    } else {
+                        statusElem.innerHTML = `<span class="text-amber-400 font-pixel text-[9px]">OPEN DOORS TO BOARD</span>`;
+                    }
+                } else {
+                    statusElem.innerHTML = `<span class="text-amber-400">Station Stop - Apply Brakes!</span>`;
+                }
+            } else {
+                statusElem.innerText = `Maintain 110 km/h speed limit`;
+            }
+
+            updateAudioPitch();
+            updateHUDUI(nextStation);
+        }
+
+        function updateHUDUI(nextStation) {
+            const absSpeed = Math.round(Math.abs(train.speed));
+            const currentDistKm = ((train.x - 1200) / 1200).toFixed(1);
+            
+            document.getElementById('dashSpeed').innerText = absSpeed;
+            document.getElementById('hudDist').innerText = Math.max(0, currentDistKm);
+
+            // INDEPENDENT TICKING CLOCK DISPLAY
+            const currentClockVal = (startDepartureHour + elapsedSimHours) % 24;
+            const displayHours = Math.floor(currentClockVal);
+            const displayMins = Math.floor((currentClockVal % 1) * 60);
+            const period = displayHours >= 12 ? 'PM' : 'AM';
+            const formattedHrs = (displayHours % 12 || 12).toString().padStart(2, '0');
+            const formattedMins = displayMins.toString().padStart(2, '0');
+            document.getElementById('hudClock').innerText = `${formattedHrs}:${formattedMins} ${period}`;
+
+            if (nextStation) {
+                const delayMins = Math.round((elapsedSimHours - nextStation.schedHrs) * 60);
+
+                const deltaElem = document.getElementById('hudScheduleDelta');
+                if (delayMins > 5) {
+                    deltaElem.className = "text-[8px] font-bold px-1 rounded bg-rose-950 text-rose-400 border border-rose-700";
+                    deltaElem.innerText = `+${delayMins}m LATE`;
+                } else if (delayMins < -5) {
+                    deltaElem.className = "text-[8px] font-bold px-1 rounded bg-cyan-950 text-cyan-400 border border-cyan-700";
+                    deltaElem.innerText = `${delayMins}m EARLY`;
+                } else {
+                    deltaElem.className = "text-[8px] font-bold px-1 rounded bg-emerald-950 text-emerald-400 border border-emerald-700";
+                    deltaElem.innerText = `ON TIME`;
+                }
+            }
+
+            const ammeter = selectedLoco === 'WAP7' ? Math.round(train.notch * 110) : Math.round(400 + train.notch * 80);
+            document.getElementById('rpmText').innerText = selectedLoco === 'WAP7' ? `${ammeter} AMPS` : `${ammeter} RPM`;
+            document.getElementById('rpmBar').style.width = `${(train.notch / 8) * 100}%`;
+
+            if (nextStation) {
+                const distKm = Math.max(0, ((nextStation.x - train.x) / 1200)).toFixed(1);
+                document.getElementById('nextStationText').innerText = `NEXT: ${nextStation.code} (${distKm} km)`;
+                const progress = Math.min(100, Math.max(0, 100 - (parseFloat(distKm) / 80) * 100));
+                document.getElementById('stationProgress').style.width = `${progress}%`;
+            } else {
+                document.getElementById('nextStationText').innerText = `NEXT: DESTINATION REACHED`;
+                document.getElementById('stationProgress').style.width = `100%`;
+            }
+        }
+
+        function getSkyColors(hour) {
+            if (hour >= 5.0 && hour < 7.0) {
+                const t = (hour - 5.0) / 2.0;
+                return { top: '#1e1b4b', mid: '#b45309', bot: '#fde047', mountain1: '#311b92', mountain2: '#047857', nightFactor: 0.5 * (1 - t) };
+            } else if (hour >= 7.0 && hour < 17.0) {
+                return { top: '#0284c7', mid: '#38bdf8', bot: '#bae6fd', mountain1: '#1e3a8a', mountain2: '#047857', nightFactor: 0.0 };
+            } else if (hour >= 17.0 && hour < 19.5) {
+                const t = (hour - 17.0) / 2.5;
+                return { top: '#4c1d95', mid: '#c2410c', bot: '#fb923c', mountain1: '#431407', mountain2: '#15803d', nightFactor: 0.7 * t };
+            } else {
+                return { top: '#030712', mid: '#0f172a', bot: '#1e293b', mountain1: '#090d16', mountain2: '#064e3b', nightFactor: 1.0 };
+            }
+        }
+
+        function renderGame() {
+            ctx.clearRect(0, 0, viewWidth, viewHeight);
+
+            const cameraX = train.x - viewWidth * 0.35;
+            const currentClockVal = (startDepartureHour + elapsedSimHours) % 24;
+            const skyTheme = getSkyColors(currentClockVal);
+
+            let skyGrad = ctx.createLinearGradient(0, 0, 0, viewHeight * 0.7);
+            skyGrad.addColorStop(0, skyTheme.top);
+            skyGrad.addColorStop(0.5, skyTheme.mid);
+            skyGrad.addColorStop(1, skyTheme.bot);
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, viewWidth, viewHeight);
+
+            if (skyTheme.nightFactor > 0.1) {
+                stars.forEach(s => {
+                    s.twinkle += 0.05;
+                    const alpha = Math.max(0, Math.sin(s.twinkle)) * skyTheme.nightFactor;
+                    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                    const sx = (s.x * viewWidth + cameraX * 0.02) % viewWidth;
+                    ctx.fillRect(sx, s.y * viewHeight, s.size, s.size);
+                });
+            }
+
+            const cloudAlpha = skyTheme.nightFactor > 0.7 ? 0.35 : 0.75;
+            ctx.fillStyle = `rgba(255, 255, 255, ${cloudAlpha})`;
+            for (let i = 0; i < viewWidth + 200; i += 180) {
+                const cx = (i - (cameraX * 0.05) % (viewWidth + 200));
+                ctx.fillRect(cx, 30 + (i % 20), 40, 12);
+                ctx.fillRect(cx + 8, 24 + (i % 20), 24, 6);
+            }
+
+            ctx.fillStyle = skyTheme.mountain1;
+            ctx.beginPath();
+            ctx.moveTo(0, viewHeight);
+            for (let x = 0; x <= viewWidth; x += 16) {
+                const wx = cameraX * 0.15 + x;
+                const hy = viewHeight * 0.52 + Math.sin(wx * 0.0007) * 45;
+                ctx.lineTo(x, hy);
+            }
+            ctx.lineTo(viewWidth, viewHeight);
+            ctx.fill();
+
+            ctx.fillStyle = skyTheme.mountain2;
+            ctx.beginPath();
+            ctx.moveTo(0, viewHeight);
+            for (let x = 0; x <= viewWidth; x += 12) {
+                const wx = cameraX * 0.35 + x;
+                const hy = viewHeight * 0.62 + Math.cos(wx * 0.0012) * 25;
+                ctx.lineTo(x, hy);
+            }
+            ctx.lineTo(viewWidth, viewHeight);
+            ctx.fill();
+
+            ctx.fillStyle = '#334155';
+            ctx.beginPath();
+            ctx.moveTo(0, viewHeight);
+            for (let x = 0; x <= viewWidth; x += 8) {
+                const wx = cameraX + x;
+                const ty = getTerrainY(wx);
+                ctx.lineTo(x, ty);
+            }
+            ctx.lineTo(viewWidth, viewHeight);
+            ctx.fill();
+
+            ctx.fillStyle = skyTheme.nightFactor > 0.6 ? '#064e3b' : '#10b981';
+            for (let x = 0; x <= viewWidth; x += 6) {
+                const wx = cameraX + x;
+                const ty = getTerrainY(wx);
+                ctx.fillRect(x, ty - 2, 6, 3);
+            }
+
+            for (let x = 0; x <= viewWidth; x += 10) {
+                const wx = cameraX + x;
+                const ty = getTerrainY(wx);
+                ctx.fillStyle = '#64748b';
+                ctx.fillRect(x, ty + 2, 5, 5);
+            }
+
+            ctx.fillStyle = skyTheme.nightFactor > 0.6 ? '#94a3b8' : '#e2e8f0';
+            for (let x = 0; x <= viewWidth; x += 4) {
+                const wx = cameraX + x;
+                const ty = getTerrainY(wx);
+                ctx.fillRect(x, ty + 1, 4, 2);
+            }
+
+            drawTrackSideProps32(cameraX, skyTheme.nightFactor);
+            drawStations32(cameraX, skyTheme.nightFactor);
+
+            train.exhaustParticles.forEach(p => {
+                const sx = p.x - cameraX;
+                ctx.fillStyle = `rgba(71, 85, 105, ${p.alpha})`;
+                ctx.fillRect(sx, p.y, p.size, p.size);
+            });
+
+            train.sparkParticles.forEach(s => {
+                const sx = s.x - cameraX;
+                ctx.fillStyle = '#f59e0b';
+                ctx.fillRect(sx, s.y, 2, 2);
+            });
+
+            drawTrainEngine32(cameraX, skyTheme.nightFactor);
+        }
+
+        function drawTrackSideProps32(cameraX, nightFactor) {
+            ctx.fillStyle = '#475569';
+
+            for (let px = 0; px < 2000000; px += 240) {
+                const sx = px - cameraX;
+                if (sx > -60 && sx < viewWidth + 60) {
+                    const ty = getTerrainY(px);
+                    ctx.fillRect(sx, ty - 65, 4, 63);
+                    ctx.fillRect(sx - 8, ty - 60, 20, 3);
+
+                    if (px % 960 === 0) {
+                        ctx.fillStyle = '#0f172a';
+                        ctx.fillRect(sx + 10, ty - 50, 8, 22);
+                        ctx.fillStyle = '#10b981';
+                        ctx.fillRect(sx + 12, ty - 46, 4, 4);
+
+                        if (nightFactor > 0.4) {
+                            ctx.fillStyle = 'rgba(16, 185, 129, 0.35)';
+                            ctx.beginPath();
+                            ctx.arc(sx + 14, ty - 44, 8, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+
+                    ctx.fillStyle = '#475569';
+                }
+            }
+        }
+
+        function drawStations32(cameraX, nightFactor) {
+            activeStations.forEach(st => {
+                const sx = st.x - cameraX;
+                if (sx > -400 && sx < viewWidth + 400) {
+                    const ty = getTerrainY(st.x);
+
+                    ctx.fillStyle = '#475569';
+                    ctx.fillRect(sx, ty - 10, st.length, 12);
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.fillRect(sx, ty - 12, st.length, 2);
+
+                    ctx.fillStyle = '#334155';
+                    ctx.fillRect(sx + 40, ty - 45, 6, 33);
+                    ctx.fillRect(sx + st.length - 40, ty - 45, 6, 33);
+                    ctx.fillStyle = '#1e3a8a';
+                    ctx.fillRect(sx + 10, ty - 50, st.length - 20, 6);
+
+                    if (nightFactor > 0.3) {
+                        ctx.fillStyle = 'rgba(251, 191, 36, 0.25)';
+                        ctx.beginPath();
+                        ctx.arc(sx + 43, ty - 40, 24, 0, Math.PI * 2);
+                        ctx.arc(sx + st.length - 37, ty - 40, 24, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.fillRect(sx + st.length / 2 - 55, ty - 42, 110, 18);
+                    ctx.fillStyle = '#0f172a';
+                    ctx.font = '700 9px Press Start 2P';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(st.code, sx + st.length / 2, ty - 29);
+
+                    commuters.filter(c => c.stationId === st.id && c.state === 'WAITING').forEach(c => {
+                        const cx = c.x + c.walkOffset - cameraX;
+                        const cy = getTerrainY(c.x) - 12;
+
+                        ctx.fillStyle = c.color;
+                        ctx.fillRect(cx - 2, cy - 14, 4, 4);
+                        ctx.fillRect(cx - 3, cy - 10, 6, 8);
+                    });
+                }
+            });
+        }
+
+        function drawTrainEngine32(cameraX, nightFactor) {
+            const trainSx = train.x - cameraX;
+            const trainY = getTerrainY(train.x);
+
+            ctx.save();
+            ctx.translate(trainSx, trainY);
+
+            if (selectedLoco === 'WAP7') {
+                ctx.fillStyle = '#0284c7';
+                ctx.fillRect(-55, -34, 110, 26);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(-55, -22, 110, 4);
+
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(32, -30, 16, 9);
+                ctx.fillStyle = '#7dd3fc';
+                ctx.fillRect(34, -28, 12, 7);
+
+                ctx.fillStyle = '#64748b';
+                ctx.fillRect(-35, -38, 70, 4);
+                ctx.fillRect(-15, -42, 30, 4);
+            } else {
+                ctx.fillStyle = '#dc2626';
+                ctx.fillRect(-55, -34, 110, 26);
+                ctx.fillStyle = '#f59e0b';
+                ctx.fillRect(-55, -22, 110, 5);
+
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(32, -30, 16, 9);
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillRect(34, -28, 12, 7);
+
+                ctx.fillStyle = '#334155';
+                ctx.fillRect(28, -42, 6, 8);
+            }
+
+            ctx.fillStyle = '#fef08a';
+            ctx.fillRect(53, -20, 3, 4);
+
+            const coneAlpha = 0.35 + (nightFactor * 0.45);
+            const lightGrad = ctx.createRadialGradient(55, -18, 2, 220, -18, 160);
+            lightGrad.addColorStop(0, `rgba(254, 240, 138, ${coneAlpha})`);
+            lightGrad.addColorStop(1, 'rgba(254, 240, 138, 0)');
+            ctx.fillStyle = lightGrad;
+            ctx.beginPath();
+            ctx.moveTo(55, -18);
+            ctx.lineTo(280, -60);
+            ctx.lineTo(280, 25);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(-48, -8, 96, 4);
+            for (let wx of [-40, -20, 20, 40]) {
+                ctx.fillStyle = '#475569';
+                ctx.fillRect(wx - 4, -6, 8, 8);
+            }
+
+            for (let i = 1; i <= 3; i++) {
+                const coachOffsetX = -i * 114;
+
+                ctx.fillStyle = '#475569';
+                ctx.fillRect(coachOffsetX + 50, -16, 10, 3);
+
+                ctx.fillStyle = '#b91c1c';
+                ctx.fillRect(coachOffsetX - 50, -32, 100, 24);
+
+                ctx.fillStyle = '#f59e0b';
+                ctx.fillRect(coachOffsetX - 50, -20, 100, 3);
+
+                for (let wx = coachOffsetX - 38; wx <= coachOffsetX + 28; wx += 18) {
+                    ctx.fillStyle = nightFactor > 0.4 ? '#fef08a' : '#fde047';
+                    ctx.fillRect(wx, -27, 10, 7);
+                }
+
+                const doorColor = train.doorsOpen ? '#10b981' : '#1e293b';
+                ctx.fillStyle = doorColor;
+                ctx.fillRect(coachOffsetX + 38, -30, 8, 20);
+                ctx.fillRect(coachOffsetX - 46, -30, 8, 20);
+
+                for (let wx of [coachOffsetX - 30, coachOffsetX + 24]) {
+                    ctx.fillStyle = '#334155';
+                    ctx.fillRect(wx - 4, -6, 8, 8);
+                }
+            }
+
+            ctx.restore();
+        }
+
+        function loop() {
+            updatePhysics();
+            renderGame();
+            requestAnimationFrame(loop);
+        }
+
+        const notchValElem = document.getElementById('notchVal');
+        const notchDisplayElem = document.getElementById('notchDisplay');
+        const brakeRange = document.getElementById('brakeRange');
+        const brakeDisplayElem = document.getElementById('brakeDisplay');
+
+        function updateNotchUI() {
+            notchValElem.innerText = `N${train.notch}`;
+            notchDisplayElem.innerText = `N${train.notch}`;
+        }
+
+        function updateDoorBtnUI() {
+            const btn = document.getElementById('btnDoorToggle');
+            const txt = document.getElementById('doorBtnText');
+            if (train.doorsOpen) {
+                btn.className = "pixel-btn-amber px-2 py-1.5 sm:px-2.5 sm:py-2 rounded font-pixel text-[8px] sm:text-[9px] flex items-center gap-1 shadow";
+                txt.innerText = "DOORS: OPEN";
+            } else {
+                btn.className = "pixel-btn-green px-2 py-1.5 sm:px-2.5 sm:py-2 rounded font-pixel text-[8px] sm:text-[9px] flex items-center gap-1 shadow";
+                txt.innerText = "DOORS: CLOSED";
+            }
+        }
+
+        document.getElementById('btnRouteUp').addEventListener('click', () => {
+            routeDirection = 'UP';
+            document.getElementById('btnRouteUp').className = "pixel-btn-amber p-2 text-[10px] font-pixel rounded text-center";
+            document.getElementById('btnRouteDown').className = "pixel-btn p-2 text-[10px] font-pixel text-slate-300 rounded text-center";
+        });
+
+        document.getElementById('btnRouteDown').addEventListener('click', () => {
+            routeDirection = 'DOWN';
+            document.getElementById('btnRouteDown').className = "pixel-btn-amber p-2 text-[10px] font-pixel rounded text-center";
+            document.getElementById('btnRouteUp').className = "pixel-btn p-2 text-[10px] font-pixel text-slate-300 rounded text-center";
+        });
+
+        document.getElementById('btnNotchDown').addEventListener('click', () => {
+            if (train.notch > 0) { train.notch--; updateNotchUI(); }
+        });
+        document.getElementById('btnNotchUp').addEventListener('click', () => {
+            if (train.notch < 8) { train.notch++; updateNotchUI(); }
+        });
+
+        brakeRange.addEventListener('input', (e) => {
+            train.brake = parseInt(e.target.value) / 100;
+            brakeDisplayElem.innerText = `${e.target.value}%`;
+        });
+        document.getElementById('btnBrakeDown').addEventListener('click', () => {
+            brakeRange.value = Math.max(0, parseInt(brakeRange.value) - 20);
+            brakeRange.dispatchEvent(new Event('input'));
+        });
+        document.getElementById('btnBrakeUp').addEventListener('click', () => {
+            brakeRange.value = Math.min(100, parseInt(brakeRange.value) + 20);
+            brakeRange.dispatchEvent(new Event('input'));
+        });
+
+        document.getElementById('btnReverser').addEventListener('click', () => {
+            if (Math.abs(train.speed) < 0.2) {
+                train.reverser = train.reverser === 1 ? -1 : 1;
+                document.getElementById('btnReverser').innerText = train.reverser === 1 ? 'FWD' : 'REV';
+                showToast(train.reverser === 1 ? 'Reverser: FORWARD' : 'Reverser: REVERSE');
+            } else {
+                showToast('Bring train to stop before changing gear!');
+            }
+        });
+
+        document.getElementById('btnSanding').addEventListener('click', () => {
+            train.sandingActive = !train.sandingActive;
+            showToast(train.sandingActive ? 'Wheel Sanding Active' : 'Wheel Sanding Off', 'fa-boxes-packing');
+        });
+
+        document.getElementById('btnDoorToggle').addEventListener('click', () => {
+            if (Math.abs(train.speed) < 0.2) {
+                train.doorsOpen = !train.doorsOpen;
+                updateDoorBtnUI();
+                showToast(train.doorsOpen ? 'Passenger Doors Opened' : 'Passenger Doors Closed', 'fa-door-open');
+            } else {
+                showToast('Stop train inside station zone to open doors!');
+            }
+        });
+
+        document.getElementById('btnHorn').addEventListener('click', playIndianRailwayHorn);
+
+        window.addEventListener('keydown', (e) => {
+            if (gameState !== 'PLAYING') return;
+
+            if (e.code === 'KeyW' || e.code === 'ArrowUp') {
+                if (train.notch < 8) { train.notch++; updateNotchUI(); }
+            }
+            if (e.code === 'KeyS' || e.code === 'ArrowDown') {
+                if (train.notch > 0) { train.notch--; updateNotchUI(); }
+            }
+            if (e.code === 'KeyA') {
+                brakeRange.value = Math.min(100, parseInt(brakeRange.value) + 20);
+                brakeRange.dispatchEvent(new Event('input'));
+            }
+            if (e.code === 'KeyD') {
+                brakeRange.value = Math.max(0, parseInt(brakeRange.value) - 20);
+                brakeRange.dispatchEvent(new Event('input'));
+            }
+            if (e.code === 'KeyE') {
+                document.getElementById('btnDoorToggle').click();
+            }
+            if (e.code === 'Space') {
+                playIndianRailwayHorn();
+            }
+        });
+
+        document.getElementById('btnAudioToggle').addEventListener('click', () => {
+            audioMuted = !audioMuted;
+            const icon = document.getElementById('audioIcon');
+            if (audioMuted) {
+                icon.className = "fa-solid fa-volume-xmark text-rose-400";
+                if (engineGain) engineGain.gain.setValueAtTime(0, audioCtx.currentTime);
+            } else {
+                icon.className = "fa-solid fa-volume-high text-amber-400";
+                if (engineGain) engineGain.gain.setValueAtTime(0.015, audioCtx.currentTime);
+            }
+        });
+
+        document.getElementById('btnRandomSeed').addEventListener('click', () => {
+            document.getElementById('seedInput').value = Math.floor(Math.random() * 89999 + 10000);
+        });
+
+        document.getElementById('btnStartGame').addEventListener('click', () => startNewGame());
+
+        document.getElementById('btnPause').addEventListener('click', () => {
+            gameState = 'PAUSED';
+            document.getElementById('pauseMenu').classList.remove('hidden');
+        });
+
+        document.getElementById('btnResume').addEventListener('click', () => {
+            document.getElementById('pauseMenu').classList.add('hidden');
+            gameState = 'PLAYING';
+        });
+
+        document.getElementById('btnSaveBookmark').addEventListener('click', () => saveBookmark());
+
+        document.getElementById('btnQuit').addEventListener('click', () => {
+            gameState = 'MENU';
+            document.getElementById('pauseMenu').classList.add('hidden');
+            document.getElementById('topHud').classList.add('hidden');
+            document.getElementById('bottomDashboard').classList.add('hidden');
+            document.getElementById('mainMenu').classList.remove('hidden');
+        });
+
+        document.getElementById('btnOpenBookmarks').addEventListener('click', () => {
+            renderBookmarksUI();
+            document.getElementById('bookmarksModal').classList.remove('hidden');
+        });
+
+        document.getElementById('btnCloseBookmarks').addEventListener('click', () => {
+            document.getElementById('bookmarksModal').classList.add('hidden');
+        });
+
+        loop();
+    </script>
+</body>
+</html>
